@@ -35,9 +35,15 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-
 .search-input:focus{border-color:var(--accent);}
 .search-wrap{position:relative;}
 .search-clear{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:16px;cursor:pointer;color:var(--text3);display:none;padding:4px;}
-.cats{max-width:640px;margin:0 auto;display:flex;gap:6px;overflow-x:auto;padding:0 0 2px 0;scrollbar-width:none;}
+.cats-wrap{max-width:640px;margin:0 auto;position:relative;}
+.cats{display:flex;gap:6px;overflow-x:auto;padding:0 0 2px 0;scrollbar-width:none;scroll-behavior:smooth;}
 .cats::-webkit-scrollbar{display:none;}
 .cats::after{content:'';min-width:0.5rem;display:block;flex-shrink:0;}
+.cats-nav{display:none;position:absolute;top:50%;transform:translateY(-60%);z-index:10;background:white;border:1px solid var(--border);border-radius:50%;width:28px;height:28px;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.1);font-size:14px;transition:background 0.15s;padding:0;}
+.cats-nav:hover{background:var(--surface2);}
+.cats-nav.left{left:-4px;}
+.cats-nav.right{right:-4px;}
+@media(min-width:480px){.cats-nav{display:flex;}}
 .cat-chip{flex-shrink:0;padding:6px 13px;border-radius:99px;border:1px solid var(--border);background:var(--surface);font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;transition:all 0.15s;white-space:nowrap;}
 .cat-chip.active{background:var(--accent);color:white;border-color:var(--accent);}
 
@@ -177,7 +183,11 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-
       <button class="search-clear" id="search-clear" onclick="clearSearch()">✕</button>
     </div>
   </div>
-  <div class="cats" id="cats"></div>
+  <div class="cats-wrap">
+    <button class="cats-nav left" onclick="scrollCats(-1)">‹</button>
+    <div class="cats" id="cats"></div>
+    <button class="cats-nav right" onclick="scrollCats(1)">›</button>
+  </div>
 </div>
 
 <!-- DESTACADOS -->
@@ -583,6 +593,10 @@ function mostrarVacio() {
 function scrollDest(dir) {
   const el = document.getElementById('dest-scroll');
   if (el) el.scrollBy({ left: dir * 300, behavior: 'smooth' });
+}
+function scrollCats(dir) {
+  const el = document.getElementById('cats');
+  if (el) el.scrollBy({ left: dir * 200, behavior: 'smooth' });
 }
 
 // ── INIT ──────────────────────────────────────────────
