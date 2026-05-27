@@ -32,8 +32,9 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-
 .search-input:focus{border-color:var(--accent);}
 .search-wrap{position:relative;}
 .search-clear{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:16px;cursor:pointer;color:var(--text3);display:none;padding:4px;}
-.cats{max-width:640px;margin:0 auto;display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;}
+.cats{max-width:640px;margin:0 auto;display:flex;gap:6px;overflow-x:auto;padding:0 0 2px 0;scrollbar-width:none;}
 .cats::-webkit-scrollbar{display:none;}
+.cats::after{content:'';min-width:0.5rem;display:block;flex-shrink:0;}
 .cat-chip{flex-shrink:0;padding:6px 13px;border-radius:99px;border:1px solid var(--border);background:var(--surface);font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;transition:all 0.15s;white-space:nowrap;}
 .cat-chip.active{background:var(--accent);color:white;border-color:var(--accent);}
 
@@ -41,8 +42,9 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-
 .section-header{max-width:640px;margin:0 auto;display:flex;align-items:center;gap:8px;padding:1.1rem 1.25rem 0.6rem;}
 .section-title{font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--text);}
 .section-tag{font-size:10px;font-weight:700;background:var(--accent-light);color:var(--accent);padding:2px 8px;border-radius:99px;border:1px solid #B0D9C0;}
-.dest-scroll{display:flex;gap:10px;overflow-x:auto;padding:0 1.25rem 0.5rem;scrollbar-width:none;max-width:640px;margin:0 auto;}
+.dest-scroll{display:flex;gap:10px;overflow-x:auto;padding:0 0 0.75rem 1.25rem;scrollbar-width:none;}
 .dest-scroll::-webkit-scrollbar{display:none;}
+.dest-scroll::after{content:'';min-width:1rem;display:block;flex-shrink:0;}
 .dest-card{flex-shrink:0;width:140px;background:var(--surface);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);border:1px solid var(--border);cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;}
 .dest-card:active{transform:scale(0.97);}
 .dest-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.12);}
