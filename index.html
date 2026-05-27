@@ -20,10 +20,13 @@
 body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
 
 /* HEADER */
-.header{background:#1C1A17;padding:1.5rem 1.25rem 3rem;position:relative;overflow:hidden;}
+.header{background:#1C1A17;padding:1.5rem 1.25rem 3rem;position:relative;overflow:hidden;min-height:140px;}
 .header::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:28px;background:var(--bg);border-radius:24px 24px 0 0;}
-.header-inner{max-width:640px;margin:0 auto;position:relative;z-index:1;}
-.store-sub{font-size:12px;color:#7A7060;margin-top:4px;}
+.header-inner{max-width:640px;margin:0 auto;position:relative;z-index:1;display:flex;flex-direction:column;align-items:flex-start;}
+.header-logo{height:90px;object-fit:contain;margin-bottom:4px;display:block;}
+.header-logo-fallback{font-family:'DM Serif Display',serif;font-size:1.9rem;color:#F5F2EC;font-weight:400;line-height:1.15;margin-bottom:4px;}
+.header-logo-fallback em{font-style:italic;color:#9ECBB4;}
+.store-sub{font-size:12px;color:#9A8A70;margin-top:2px;letter-spacing:0.02em;}
 
 /* SEARCH & FILTERS */
 .sticky-top{position:sticky;top:0;z-index:50;background:var(--bg);padding:12px 1.25rem 8px;border-bottom:1px solid var(--border);}
@@ -154,8 +157,10 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-
 
 <div class="header">
   <div class="header-inner">
-    <img src="logo.png" alt="Veloura Essence" style="height:90px;object-fit:contain;margin-bottom:4px;"/>
-    <div class="store-sub">🇺🇸 Productos importados · Envío disponible</div>
+    <img class="header-logo" src="logo.png" alt="Veloura Essence"
+         onerror="this.style.display='none';document.getElementById('logo-fallback').style.display='block'"/>
+    <div class="header-logo-fallback" id="logo-fallback" style="display:none;">Veloura <em>Essence</em></div>
+    <div class="store-sub">Productos importados · Envío disponible</div>
   </div>
 </div>
 
