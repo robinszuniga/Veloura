@@ -1381,7 +1381,7 @@ function guardar() {
 //  INVENTARIO — datos
 // ═══════════════════════════════════════════
 function getInv()      { return safeGet('skincare_inv', []); }
-function saveInv(inv)  { safeSave('skincare_inv', inv); updateBadge(); localStorage.setItem('skincare_inv_ts', Date.now()); }
+function saveInv(inv)  { safeSave('skincare_inv', inv); updateBadge(); localStorage.setItem('skincare_inv_ts', Date.now()); clearTimeout(window._sbTimer); window._sbTimer = setTimeout(syncASupabase, 1500); }
 
 function updateBadge() {
   const inv      = getInv();
@@ -2065,9 +2065,9 @@ async function syncASupabase() {
     const productos = getInv().map(function(p){ const c=Object.assign({},p); delete c.foto; return c; });
     const ventas    = safeGet('skincare_ventas', []).slice(0, 1000);
     const hist      = safeGet('skincare_hist',   []).slice(0, 500);
-    await fetch(SB_URL + '/rest/v1/mi_tienda_sync', {
-      method: 'POST', headers: SB_HDR,
-      body: JSON.stringify({ id:1, productos, ventas, hist, actualizado: new Date().toISOString() })
+    await fetch(SB_URL + '/rest/v1/mi_tienda_sync?id=eq.1', {
+      method: 'PATCH', headers: SB_HDR,
+      body: JSON.stringify({ productos, ventas, hist, actualizado: new Date().toISOString() })
     });
   } catch(e) { console.log('Supabase sync error:', e); }
 }
