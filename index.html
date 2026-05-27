@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="theme-color" content="#1C1A17"/>
+<title>Veloura Essence · Importados</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#FAF8F5;--surface:#FFFFFF;--surface2:#F3F0EA;
+  --border:#E4DFD4;--text:#1C1A17;--text2:#6E6659;--text3:#A09890;
+  --accent:#1A5C3A;--accent-light:#E4F2EB;--accent-mid:#2E8A57;
+  --wa:#128C7E;--wa-dark:#0a6960;
+  --red:#8B2020;--red-light:#FAEBEB;
+  --amber:#7A4F1A;--amber-light:#FBF3E6;
+  --radius:12px;--shadow:0 2px 12px rgba(0,0,0,0.08);
+}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* HEADER */
+.header{background:#1C1A17;padding:1.5rem 1.25rem 3rem;position:relative;overflow:hidden;}
+.header::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:28px;background:var(--bg);border-radius:24px 24px 0 0;}
+.header-inner{max-width:640px;margin:0 auto;position:relative;z-index:1;}
+.store-name{font-family:'DM Serif Display',serif;font-size:1.9rem;color:#F5F2EC;font-weight:400;line-height:1.15;}
+.store-name em{font-style:italic;color:#9ECBB4;}
+.store-sub{font-size:12px;color:#7A7060;margin-top:4px;}
+
+/* SEARCH & FILTERS */
+.sticky-top{position:sticky;top:0;z-index:50;background:var(--bg);padding:12px 1.25rem 8px;border-bottom:1px solid var(--border);}
+.search-box{max-width:640px;margin:0 auto 10px;}
+.search-input{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);font-family:'Outfit',sans-serif;font-size:14px;background:var(--surface);color:var(--text);outline:none;}
+.search-input:focus{border-color:var(--accent);}
+.cats{max-width:640px;margin:0 auto;display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;}
+.cats::-webkit-scrollbar{display:none;}
+.cat-chip{flex-shrink:0;padding:5px 12px;border-radius:99px;border:1px solid var(--border);background:var(--surface);font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.cat-chip.active{background:var(--accent);color:white;border-color:var(--accent);}
+
+/* GRID */
+.container{max-width:640px;margin:0 auto;padding:1rem 1.25rem 7rem;}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+@media(min-width:480px){.grid{grid-template-columns:repeat(3,1fr);}}
+
+/* PRODUCT CARD */
+.prod-card{background:var(--surface);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);border:1px solid var(--border);position:relative;transition:transform 0.15s;}
+.prod-card:active{transform:scale(0.98);}
+.prod-card.agotado{opacity:0.55;}
+.prod-photo{width:100%;aspect-ratio:1;background:var(--surface2);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;}
+.prod-photo img{width:100%;height:100%;object-fit:cover;}
+.prod-emoji{font-size:2.5rem;}
+.agotado-badge{position:absolute;top:8px;left:8px;background:rgba(139,32,32,0.88);color:white;font-size:9px;font-weight:700;padding:3px 8px;border-radius:99px;backdrop-filter:blur(4px);}
+.low-badge{position:absolute;top:8px;left:8px;background:rgba(122,79,26,0.88);color:white;font-size:9px;font-weight:700;padding:3px 8px;border-radius:99px;backdrop-filter:blur(4px);}
+.prod-body{padding:9px 10px 11px;}
+.prod-nombre{font-size:12px;font-weight:600;color:var(--text);line-height:1.35;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.prod-precio{font-size:14px;font-weight:700;color:var(--accent);margin-bottom:4px;}
+.prod-avail{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;margin-bottom:8px;padding:3px 8px;border-radius:99px;}
+.prod-avail.ok{background:var(--accent-light);color:var(--accent);border:1px solid #B0D9C0;}
+.prod-avail.low{background:var(--amber-light);color:var(--amber);border:1px solid #DFC89A;}
+.prod-avail.out{background:var(--red-light);color:var(--red);border:1px solid #E8BABA;}
+.add-btn{width:100%;padding:7px;background:var(--accent);color:white;border:none;border-radius:8px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:background 0.15s;}
+.add-btn:hover{background:var(--accent-mid);}
+.add-btn:disabled{background:var(--border);color:var(--text3);cursor:not-allowed;}
+.qty-ctrl{display:flex;align-items:center;justify-content:space-between;gap:4px;}
+.qty-btn{width:28px;height:28px;border:1px solid var(--border);background:var(--surface2);border-radius:6px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:600;color:var(--text);}
+.qty-num{font-size:14px;font-weight:700;color:var(--text);min-width:20px;text-align:center;}
+
+/* EMPTY */
+.empty{text-align:center;padding:3rem 1rem;color:var(--text3);}
+.empty-icon{font-size:2.5rem;margin-bottom:8px;}
+
+/* CARRITO FLOTANTE */
+.cart-fab{position:fixed;bottom:1.5rem;right:1.5rem;z-index:100;background:var(--wa);color:white;border:none;border-radius:99px;padding:14px 20px;font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(18,140,126,0.4);display:flex;align-items:center;gap:10px;transition:all 0.2s;transform:translateY(100px);opacity:0;}
+.cart-fab.visible{transform:translateY(0);opacity:1;}
+.cart-fab:hover{background:var(--wa-dark);}
+.cart-count{background:white;color:var(--wa);border-radius:50%;width:22px;height:22px;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;}
+
+/* MODAL CARRITO */
+.modal-overlay{position:fixed;inset:0;background:rgba(28,26,23,0.55);z-index:200;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal-sheet{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:640px;padding:1.5rem 1.5rem calc(1.5rem + env(safe-area-inset-bottom,0));transform:translateY(100%);transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);max-height:85vh;overflow-y:auto;}
+.modal-overlay.open .modal-sheet{transform:translateY(0);}
+.modal-handle{width:36px;height:4px;background:var(--border);border-radius:99px;margin:0 auto 1.25rem;}
+.modal-title{font-family:'DM Serif Display',serif;font-size:1.3rem;margin-bottom:1rem;}
+
+/* ITEMS CARRITO */
+.cart-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}
+.cart-item:last-of-type{border-bottom:none;}
+.cart-item-photo{width:48px;height:48px;border-radius:8px;background:var(--surface2);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.3rem;}
+.cart-item-photo img{width:100%;height:100%;object-fit:cover;}
+.cart-item-info{flex:1;min-width:0;}
+.cart-item-nombre{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cart-item-precio{font-size:12px;color:var(--accent);font-weight:600;}
+.cart-item-qty{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.cart-total-row{display:flex;justify-content:space-between;align-items:center;padding:1rem 0 0;font-weight:700;font-size:16px;}
+.cart-total-val{color:var(--accent);font-size:1.2rem;}
+.wa-btn{width:100%;margin-top:1rem;padding:15px;background:var(--wa);color:white;border:none;border-radius:var(--radius);font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:background 0.15s;}
+.wa-btn:hover{background:var(--wa-dark);}
+.vaciar-btn{width:100%;margin-top:8px;padding:10px;background:none;color:var(--text3);border:1px solid var(--border);border-radius:var(--radius);font-family:'Outfit',sans-serif;font-size:13px;cursor:pointer;}
+
+/* LOADING */
+.loading{text-align:center;padding:3rem;color:var(--text3);}
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <img src="logo.png" alt="Veloura Essence" style="height:90px;object-fit:contain;margin-bottom:4px;"/>
+    <div class="store-sub">🇺🇸 Productos importados · Envío disponible</div>
+  </div>
+</div>
+
+<div class="sticky-top">
+  <div class="search-box">
+    <input class="search-input" type="text" id="search" placeholder="🔍 Buscar producto..." oninput="filtrar()"/>
+  </div>
+  <div class="cats" id="cats"></div>
+</div>
+
+<div class="container">
+  <div class="loading" id="loading"><div class="spinner"></div>Cargando productos...</div>
+  <div class="grid" id="grid" style="display:none;"></div>
+  <div class="empty" id="empty" style="display:none;"><div class="empty-icon">🔍</div>No se encontraron productos</div>
+</div>
+
+<!-- CARRITO FAB -->
+<button class="cart-fab" id="cart-fab" onclick="abrirCarrito()">
+  🛒 Ver pedido
+  <span class="cart-count" id="cart-count">0</span>
+</button>
+
+<!-- MODAL CARRITO -->
+<div class="modal-overlay" id="cart-modal" onclick="cerrarCarrito(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🛒 Tu pedido</div>
+    <div id="cart-items"></div>
+    <div class="cart-total-row">
+      <span>Total</span>
+      <span class="cart-total-val" id="cart-total">$0</span>
+    </div>
+    <button class="wa-btn" onclick="enviarWhatsApp()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.553 4.116 1.522 5.847L.057 23.203a.75.75 0 00.74.917l5.532-1.45A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.732 9.732 0 01-4.964-1.356l-.356-.213-3.685.967.983-3.595-.233-.371A9.722 9.722 0 012.25 12C2.25 6.615 6.615 2.25 12 2.25S21.75 6.615 21.75 12 17.385 21.75 12 21.75z"/></svg>
+      Enviar pedido por WhatsApp
+    </button>
+    <button class="vaciar-btn" onclick="vaciarCarrito()">🗑️ Vaciar pedido</button>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────
+const SB_URL  = 'https://ewfcqqmrhidvuhprqqqe.supabase.co';
+const SB_KEY  = 'sb_publishable_HqYnS4UUqrF8PCpcfM97qg_aUP-mKwn';
+const WA_NUM  = '573008851735';
+const TIENDA  = 'Veloura Essence';
+
+const TIPO_EMOJI = {
+  cosmetico:'🧴',perfume:'🌸',maquillaje:'💄',cabello:'💇',
+  corporal:'🧖',suplemento:'💊',accesorio:'💅',cartuchera:'🎒',
+  electronico:'📱',ropa:'👕',calzado:'👟',otro:'📦'
+};
+const CAT_LABEL = {
+  cosmetico:'Cosmético',perfume:'Perfume',maquillaje:'Maquillaje',
+  cabello:'Cabello',corporal:'Corporal',suplemento:'Suplemento',
+  accesorio:'Accesorio',cartuchera:'Cartuchera',
+  electronico:'Electrónico',ropa:'Ropa',calzado:'Calzado',otro:'Otro'
+};
+
+// ── ESTADO ────────────────────────────────────────────
+let productos = [];
+let carrito   = {}; // { id: { producto, qty } }
+let catActual = 'todos';
+
+// ── CARGAR DESDE SUPABASE ─────────────────────────────
+async function cargar() {
+  try {
+    const res  = await fetch(SB_URL + '/rest/v1/mi_tienda_sync?id=eq.1', {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+    });
+    const rows = await res.json();
+    if (!rows || !rows.length || !rows[0].productos) {
+      mostrarVacio(); return;
+    }
+    productos = rows[0].productos.filter(p => p.stock > 0);
+    productos.sort((a,b) => a.nombre.localeCompare(b.nombre));
+    renderCats();
+    renderGrid();
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('grid').style.display    = 'grid';
+  } catch(e) {
+    document.getElementById('loading').innerHTML = '❌ Error cargando productos. Intenta de nuevo.';
+  }
+}
+
+// ── CATEGORÍAS ────────────────────────────────────────
+function renderCats() {
+  const tipos = [...new Set(productos.map(p => p.tipo||'otro'))];
+  const el    = document.getElementById('cats');
+  el.innerHTML = `<button class="cat-chip active" onclick="setCat('todos',this)">Todos</button>`;
+  tipos.forEach(t => {
+    el.innerHTML += `<button class="cat-chip" onclick="setCat('${t}',this)">${TIPO_EMOJI[t]||'📦'} ${CAT_LABEL[t]||t}</button>`;
+  });
+}
+function setCat(cat, btn) {
+  catActual = cat;
+  document.querySelectorAll('.cat-chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  filtrar();
+}
+
+// ── FILTRAR ───────────────────────────────────────────
+function filtrar() {
+  const q = document.getElementById('search').value.toLowerCase();
+  let lista = productos;
+  if (catActual !== 'todos') lista = lista.filter(p => (p.tipo||'otro') === catActual);
+  if (q) lista = lista.filter(p => p.nombre.toLowerCase().includes(q));
+  renderGrid(lista);
+}
+
+// ── RENDER GRID ───────────────────────────────────────
+function fmt(n) { return '$ ' + Math.round(n||0).toLocaleString('es-CO'); }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function renderGrid(lista) {
+  lista = lista || productos;
+  const el = document.getElementById('grid');
+  const empty = document.getElementById('empty');
+  if (!lista.length) { el.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display = 'none';
+  el.innerHTML = lista.map(p => {
+    const emoji   = TIPO_EMOJI[p.tipo||'otro'] || '📦';
+    const fotoSrc = p.fotoUrl || p.foto || '';
+    const foto    = fotoSrc
+      ? `<img src="${esc(fotoSrc)}" alt="${esc(p.nombre)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=prod-emoji>${emoji}</span>'">`
+      : `<span class="prod-emoji">${emoji}</span>`;
+    const isLow    = p.stock > 0 && p.stock <= 3;
+    const photoBadge = isLow ? `<span class="low-badge">⚡ Últimas ${p.stock}</span>` : '';
+    const availCls = isLow ? 'low' : 'ok';
+    const availTxt = isLow ? '⚠️ Últim'+(p.stock===1?'a':'as')+' '+p.stock+' und' : '✅ Disponible';
+    const qty = carrito[p.id] ? carrito[p.id].qty : 0;
+    const ctrl = qty > 0
+      ? `<div class="qty-ctrl">
+           <button class="qty-btn" onclick="cambiarQty('${p.id}',-1)">−</button>
+           <span class="qty-num">${qty}</span>
+           <button class="qty-btn" onclick="cambiarQty('${p.id}',1)">+</button>
+         </div>`
+      : `<button class="add-btn" onclick="agregar('${p.id}')">+ Agregar</button>`;
+    return `<div class="prod-card" id="card-${p.id}">
+      <div class="prod-photo">${foto}${photoBadge}</div>
+      <div class="prod-body">
+        <div class="prod-nombre">${esc(p.nombre)}</div>
+        <div class="prod-precio">${fmt(p.precioVenta)}</div>
+        <div class="prod-avail ${availCls}">${availTxt}</div>
+        ${ctrl}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── CARRITO ───────────────────────────────────────────
+function agregar(id) {
+  const p = productos.find(x => String(x.id) === String(id));
+  if (!p) return;
+  carrito[id] = carrito[id] || { producto: p, qty: 0 };
+  carrito[id].qty++;
+  actualizarFab();
+  renderCardCtrl(id);
+}
+function cambiarQty(id, delta) {
+  if (!carrito[id]) return;
+  carrito[id].qty += delta;
+  if (carrito[id].qty <= 0) delete carrito[id];
+  actualizarFab();
+  renderCardCtrl(id);
+}
+function renderCardCtrl(id) {
+  const card = document.getElementById('card-' + id);
+  if (!card) return;
+  const body = card.querySelector('.prod-body');
+  const qty  = carrito[id] ? carrito[id].qty : 0;
+  const ctrl = body.querySelector('.qty-ctrl, .add-btn');
+  if (ctrl) ctrl.outerHTML = qty > 0
+    ? `<div class="qty-ctrl">
+         <button class="qty-btn" onclick="cambiarQty('${id}',-1)">−</button>
+         <span class="qty-num">${qty}</span>
+         <button class="qty-btn" onclick="cambiarQty('${id}',1)">+</button>
+       </div>`
+    : `<button class="add-btn" onclick="agregar('${id}')">+ Agregar</button>`;
+}
+function actualizarFab() {
+  const total = Object.values(carrito).reduce((s,i) => s+i.qty, 0);
+  const fab   = document.getElementById('cart-fab');
+  document.getElementById('cart-count').textContent = total;
+  fab.classList.toggle('visible', total > 0);
+}
+function abrirCarrito() {
+  const items = Object.values(carrito);
+  const total = items.reduce((s,i) => s + (i.producto.precioVenta * i.qty), 0);
+  document.getElementById('cart-items').innerHTML = items.map(i => {
+    const fotoSrc = i.producto.fotoUrl || i.producto.foto || '';
+    const emoji   = TIPO_EMOJI[i.producto.tipo||'otro'] || '📦';
+    const foto    = fotoSrc
+      ? `<img src="${esc(fotoSrc)}" alt="" onerror="this.parentElement.innerHTML='${emoji}'">`
+      : emoji;
+    return `<div class="cart-item">
+      <div class="cart-item-photo">${foto}</div>
+      <div class="cart-item-info">
+        <div class="cart-item-nombre">${esc(i.producto.nombre)}</div>
+        <div class="cart-item-precio">${fmt(i.producto.precioVenta)} × ${i.qty} = ${fmt(i.producto.precioVenta * i.qty)}</div>
+      </div>
+      <div class="cart-item-qty">
+        <button class="qty-btn" onclick="cambiarQty('${i.producto.id}',-1);abrirCarrito()">−</button>
+        <span class="qty-num">${i.qty}</span>
+        <button class="qty-btn" onclick="cambiarQty('${i.producto.id}',1);abrirCarrito()">+</button>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('cart-total').textContent = fmt(total);
+  document.getElementById('cart-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function cerrarCarrito(e) {
+  if (e && e.target !== document.getElementById('cart-modal')) return;
+  document.getElementById('cart-modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function vaciarCarrito() {
+  carrito = {};
+  actualizarFab();
+  document.getElementById('cart-modal').classList.remove('open');
+  document.body.style.overflow = '';
+  filtrar();
+}
+
+// ── WHATSAPP ──────────────────────────────────────────
+function enviarWhatsApp() {
+  const items = Object.values(carrito);
+  if (!items.length) return;
+  const total = items.reduce((s,i) => s + (i.producto.precioVenta * i.qty), 0);
+  let msg = `Hola! 👋 Quiero hacer un pedido en *${TIENDA}*:\n\n`;
+  items.forEach(i => {
+    msg += `• ${i.producto.nombre} x${i.qty} → ${fmt(i.producto.precioVenta * i.qty)}\n`;
+  });
+  msg += `\n💰 *Total: ${fmt(total)}*\n\n¿Tienen disponibilidad? 😊`;
+  const url = `https://wa.me/${WA_NUM}?text=${encodeURIComponent(msg)}`;
+  window.open(url, '_blank');
+}
+
+function mostrarVacio() {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('empty').style.display   = 'block';
+  document.getElementById('grid').style.display    = 'none';
+}
+
+// ── INIT ──────────────────────────────────────────────
+cargar();
+</script>
+</body>
+</html>
