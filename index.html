@@ -455,9 +455,15 @@ function renderGrid(lista) {
   lista = lista || productos;
   const el    = document.getElementById('grid');
   const empty = document.getElementById('empty');
-  if (!lista.length) { el.innerHTML=''; empty.style.display='block'; el.style.display='none'; return; }
+  const sortBar = document.getElementById('sort-bar');
+  if (!lista.length) {
+    el.innerHTML=''; empty.style.display='block'; el.style.display='none';
+    if (sortBar) sortBar.style.display='none';
+    return;
+  }
   empty.style.display = 'none';
   el.style.display = 'grid';
+  if (sortBar) sortBar.style.display='flex';
   // Calcular umbral para "top ventas"
   const vendidosMax = Math.max(...productos.map(p => p.vendidos||0));
   const topThresh = vendidosMax >= 3 ? 3 : 1;
@@ -483,26 +489,27 @@ function renderGrid(lista) {
     const availTxt = isLow
       ? `⚠️ Solo ${p.stock} disponible${p.stock>1?'s':''}`
       : '✅ Disponible';
+    const sid  = String(p.id).replace(/'/g,"\\'");
     const qty  = carrito[p.id] ? carrito[p.id].qty : 0;
     const ctrl = qty > 0
       ? `<div class="qty-ctrl">
-           <button class="qty-btn" onclick="event.stopPropagation();cambiarQty('${p.id}',-1)">−</button>
+           <button class="qty-btn" onclick="event.stopPropagation();cambiarQty('${sid}',-1)">−</button>
            <span class="qty-num">${qty}</span>
-           <button class="qty-btn" onclick="event.stopPropagation();cambiarQty('${p.id}',1)">+</button>
+           <button class="qty-btn" onclick="event.stopPropagation();cambiarQty('${sid}',1)">+</button>
          </div>`
       : `<div class="card-btns">
-           <button class="add-btn-sm" onclick="event.stopPropagation();agregar('${p.id}')">+ Agregar</button>
-           <button class="wa-quick-btn" onclick="event.stopPropagation();loQuiero('${p.id}')" title="Lo quiero">💬</button>
+           <button class="add-btn-sm" onclick="event.stopPropagation();agregar('${sid}')">+ Agregar</button>
+           <button class="wa-quick-btn" onclick="event.stopPropagation();loQuiero('${sid}')" title="Lo quiero">💬</button>
          </div>`;
-    return `<div class="prod-card${p.stock===0?' agotado':''}" id="card-${p.id}">
-      <div class="prod-photo prod-clickable" style="background:${gradient}" onclick="abrirDetalle('${p.id}')">
+    return `<div class="prod-card${p.stock===0?' agotado':''}" id="card-${sid}">
+      <div class="prod-photo prod-clickable" style="background:${gradient}" onclick="abrirDetalle('${sid}')">
         ${foto}
         <div class="prod-emoji-wrap" style="${fotoSrc?'display:none':''}"><span class="prod-emoji">${emoji}</span></div>
         ${photoBadge}
-        <button class="share-btn-card" onclick="event.stopPropagation();compartirProducto('${p.id}')" title="Compartir">📤</button>
+        <button class="share-btn-card" onclick="event.stopPropagation();compartirProducto('${sid}')" title="Compartir">📤</button>
       </div>
       <div class="prod-body">
-        <div class="prod-nombre prod-clickable" onclick="abrirDetalle('${p.id}')">${esc(p.nombre)}</div>
+        <div class="prod-nombre prod-clickable" onclick="abrirDetalle('${sid}')">${esc(p.nombre)}</div>
         <div class="prod-precio">${fmt(p.precioVenta)}</div>
         <div class="prod-avail ${availCls}">${availTxt}</div>
         ${ctrl}
@@ -530,17 +537,18 @@ function cambiarQty(id, delta) {
 function renderCardCtrl(id) {
   const card = document.getElementById('card-' + id);
   if (!card) return;
+  const sid  = String(id).replace(/'/g,"\\'");
   const qty  = carrito[id] ? carrito[id].qty : 0;
   const ctrl = card.querySelector('.qty-ctrl, .card-btns');
   if (ctrl) ctrl.outerHTML = qty > 0
     ? `<div class="qty-ctrl">
-         <button class="qty-btn" onclick="event.stopPropagation();cambiarQty('${id}',-1)">−</button>
+         <button class="qty-btn" onclick="event.stopPropagation();cambiarQty('${sid}',-1)">−</button>
          <span class="qty-num">${qty}</span>
-         <button class="qty-btn" onclick="event.stopPropagation();cambiarQty('${id}',1)">+</button>
+         <button class="qty-btn" onclick="event.stopPropagation();cambiarQty('${sid}',1)">+</button>
        </div>`
     : `<div class="card-btns">
-         <button class="add-btn-sm" onclick="event.stopPropagation();agregar('${id}')">+ Agregar</button>
-         <button class="wa-quick-btn" onclick="event.stopPropagation();loQuiero('${id}')" title="Lo quiero">💬</button>
+         <button class="add-btn-sm" onclick="event.stopPropagation();agregar('${sid}')">+ Agregar</button>
+         <button class="wa-quick-btn" onclick="event.stopPropagation();loQuiero('${sid}')" title="Lo quiero">💬</button>
        </div>`;
 }
 function actualizarFab() {
