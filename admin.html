@@ -713,9 +713,12 @@ input[type=range]::-webkit-slider-thumb { appearance:none; width:20px; height:20
     </div>
   </div>
 
-  <div class="ven-filters">
-    <button class="ven-filter active" id="vf-mes" onclick="setVenFilter('mes')">Este mes</button>
-    <button class="ven-filter" id="vf-todo" onclick="setVenFilter('todo')">Todas</button>
+  <div class="ven-filters" style="justify-content:space-between;align-items:center;">
+    <div style="display:flex;gap:8px;">
+      <button class="ven-filter active" id="vf-mes" onclick="setVenFilter('mes')">Este mes</button>
+      <button class="ven-filter" id="vf-todo" onclick="setVenFilter('todo')">Todas</button>
+    </div>
+    <button class="ven-filter" onclick="importarVentasDeSheets()" style="background:var(--accent-light);color:var(--accent);border-color:#B0D9C0;font-weight:700;" title="Importar ventas desde Google Sheets">📥 Sheets</button>
   </div>
   <div class="filt-row">
     <button class="filt-btn on-amber" id="vc-todos"      onclick="setVenCanal('todos')">Todos los canales</button>
@@ -1469,6 +1472,56 @@ function confirmarVenta() {
   const mesActual = new Date().getMonth() + '-' + new Date().getFullYear();
   const ventasMes = ventas.filter(v => v.mes === mesActual).length;
   if (document.getElementById('page-ven').classList.contains('active')) renderVentas();
+}
+
+// ═══════════════════════════════════════════
+//  IMPORTAR VENTAS DESDE GOOGLE SHEETS
+// ═══════════════════════════════════════════
+async function importarVentasDeSheets() {
+  const url = getSheetsUrl();
+  if (!url) { showToast('⚠️ Primero conecta Google Sheets', 'warn'); return; }
+  showToast('📥 Cargando ventas de Sheets…', '');
+  try {
+    const res  = await fetch(url);
+    const data = await res.json();
+    if (!data.ok || !data.ventas) { showToast('❌ No se encontraron ventas en Sheets', 'err'); return; }
+
+    const ventasSheets = data.ventas;
+    const locales      = safeGet('skincare_ventas', []);
+
+    // Clave única por venta: fecha+hora+producto
+    const claves = new Set(locales.map(v => (v.fecha||'')+'|'+(v.hora||'')+'|'+(v.producto||'')));
+    const nuevas = ventasSheets.filter(v => {
+      const k = (v.fecha||'')+'|'+(v.hora||'')+'|'+(v.producto||'');
+      return !claves.has(k);
+    });
+
+    if (!nuevas.length) { showToast('✅ Ya están todas las ventas actualizadas', 'ok'); return; }
+
+    // Asegurar que cada venta tenga campo mes para los filtros
+    nuevas.forEach(v => {
+      if (!v.mes && v.fecha) {
+        const slash = String(v.fecha).trim().split('/');
+        const d = slash.length === 3 ? new Date(+slash[2], +slash[1]-1, +slash[0]) : new Date(v.fecha);
+        if (!isNaN(d.getTime())) v.mes = d.getMonth() + '-' + d.getFullYear();
+      }
+    });
+
+    const merged = [...locales, ...nuevas];
+    merged.sort((a,b) => {
+      const fa = a.fecha ? a.fecha.split('/').reverse().join('') : '';
+      const fb = b.fecha ? b.fecha.split('/').reverse().join('') : '';
+      return fb.localeCompare(fa);
+    });
+
+    safeSave('skincare_ventas', merged);
+    syncASupabase();
+    renderVentas();
+    showToast('✅ ' + nuevas.length + ' venta' + (nuevas.length!==1?'s':'') + ' importada' + (nuevas.length!==1?'s':'') + ' de Sheets', 'ok');
+  } catch(e) {
+    console.error('Import sheets error:', e);
+    showToast('❌ Error al conectar con Sheets', 'err');
+  }
 }
 
 // ═══════════════════════════════════════════
@@ -2430,27 +2483,32 @@ async function subirJsonASheets(event) {
 }
 
 async function subirFotoASupabase(dataUrl, nombre, id) {
+  // Usar Google Drive via Apps Script (evita problemas de RLS de Supabase Storage)
+  const sheetsUrl = getSheetsUrl();
+  if (!sheetsUrl) {
+    showToast('⚠️ Conecta Google Sheets primero para subir fotos', 'warn');
+    return null;
+  }
   try {
-    // Convertir base64 a blob
-    const fetchRes = await fetch(dataUrl);
-    const blob     = await fetchRes.blob();
-    // Nombre de archivo único (todo sanitizado)
+    showToast('📤 Subiendo foto…', '');
     const safeName = (nombre||'foto').replace(/[^a-zA-Z0-9]/g,'_').slice(0,40);
-    const safeId   = String(id||Date.now()).replace(/[^a-zA-Z0-9]/g,'_');
-    const filename = safeName + '_' + safeId + '.jpg';
-    // Subir usando el SDK oficial (maneja autenticación correctamente)
-    const { error } = await sbClient.storage
-      .from('fotos')
-      .upload(filename, blob, { contentType: 'image/jpeg', upsert: true });
-    if (error) {
-      console.error('Storage error:', error);
-      showToast('❌ Error subiendo foto: ' + error.message, 'err');
-      return null;
+    // Content-Type: text/plain evita el preflight CORS en Apps Script
+    const res = await fetch(sheetsUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'uploadFoto', base64: dataUrl, nombre: safeName })
+    });
+    const text = await res.text();
+    const data = JSON.parse(text);
+    if (data && data.url) {
+      showToast('✅ Foto subida correctamente', 'ok');
+      return data.url;
     }
-    const { data } = sbClient.storage.from('fotos').getPublicUrl(filename);
-    return data.publicUrl;
+    console.error('Drive upload sin URL:', data);
+    showToast('❌ Error al subir foto: ' + (data && data.error || 'respuesta inválida'), 'err');
+    return null;
   } catch(e) {
-    console.error('Supabase storage error:', e);
+    console.error('Drive upload error:', e);
     showToast('❌ Error de conexión al subir foto', 'err');
     return null;
   }
