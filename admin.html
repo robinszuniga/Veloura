@@ -2483,32 +2483,29 @@ async function subirJsonASheets(event) {
 }
 
 async function subirFotoASupabase(dataUrl, nombre, id) {
-  // Usar Google Drive via Apps Script (evita problemas de RLS de Supabase Storage)
-  const sheetsUrl = getSheetsUrl();
-  if (!sheetsUrl) {
-    showToast('⚠️ Conecta Google Sheets primero para subir fotos', 'warn');
-    return null;
-  }
   try {
     showToast('📤 Subiendo foto…', '');
-    const safeName = (nombre||'foto').replace(/[^a-zA-Z0-9]/g,'_').slice(0,40);
-    // Content-Type: text/plain evita el preflight CORS en Apps Script
-    const res = await fetch(sheetsUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'uploadFoto', base64: dataUrl, nombre: safeName })
-    });
-    const text = await res.text();
-    const data = JSON.parse(text);
-    if (data && data.url) {
-      showToast('✅ Foto subida correctamente', 'ok');
-      return data.url;
+    // Convertir dataUrl a Blob
+    const res   = await fetch(dataUrl);
+    const blob  = await res.blob();
+    const safeId   = String(id   || Date.now()).replace(/[^a-zA-Z0-9]/g, '_').slice(0, 40);
+    const safeName = String(nombre || 'foto').replace(/[^a-zA-Z0-9]/g, '_').slice(0, 40);
+    const fileName = `${safeId}_${safeName}_${Date.now()}.jpg`;
+    // Subir al bucket 'fotos' (política FOR ALL → cualquiera puede subir)
+    const { data, error } = await sbClient.storage
+      .from('fotos')
+      .upload(fileName, blob, { contentType: 'image/jpeg', upsert: true });
+    if (error) {
+      console.error('Storage upload error:', error);
+      showToast('❌ Error al subir foto: ' + error.message, 'err');
+      return null;
     }
-    console.error('Drive upload sin URL:', data);
-    showToast('❌ Error al subir foto: ' + (data && data.error || 'respuesta inválida'), 'err');
-    return null;
+    // Obtener URL pública
+    const { data: urlData } = sbClient.storage.from('fotos').getPublicUrl(fileName);
+    showToast('✅ Foto subida correctamente', 'ok');
+    return urlData.publicUrl;
   } catch(e) {
-    console.error('Drive upload error:', e);
+    console.error('subirFotoASupabase error:', e);
     showToast('❌ Error de conexión al subir foto', 'err');
     return null;
   }
