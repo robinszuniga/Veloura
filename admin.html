@@ -14,6 +14,7 @@
 (function(){if(sessionStorage.getItem('vl_auth')!=='1')document.documentElement.style.display='none';}());
 </script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 /* LOGIN */
 .login-screen { position:fixed; inset:0; background:#1C1A17; z-index:9999; display:none; align-items:center; justify-content:center; padding:2rem; }
@@ -2059,6 +2060,7 @@ function importar(event) {
 const SB_URL = 'https://ewfcqqmrhidvuhprqqqe.supabase.co';
 const SB_KEY = 'sb_publishable_HqYnS4UUqrF8PCpcfM97qg_aUP-mKwn';
 const SB_HDR = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' };
+const sbClient = supabase.createClient(SB_URL, SB_KEY);
 
 async function syncASupabase() {
   try {
@@ -2432,24 +2434,21 @@ async function subirFotoASupabase(dataUrl, nombre, id) {
     // Convertir base64 a blob
     const fetchRes = await fetch(dataUrl);
     const blob     = await fetchRes.blob();
-    // Nombre de archivo único por producto (sanitizar nombre e id)
+    // Nombre de archivo único (todo sanitizado)
     const safeName = (nombre||'foto').replace(/[^a-zA-Z0-9]/g,'_').slice(0,40);
     const safeId   = String(id||Date.now()).replace(/[^a-zA-Z0-9]/g,'_');
     const filename = safeName + '_' + safeId + '.jpg';
-    // Subir a Supabase Storage (upsert si ya existe)
-    const res = await fetch(SB_URL + '/storage/v1/object/fotos/' + filename, {
-      method: 'POST',
-      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY,
-                 'Content-Type': 'image/jpeg', 'x-upsert': 'true' },
-      body: blob
-    });
-    if (!res.ok) {
-      const errTxt = await res.text();
-      console.error('Storage error:', errTxt);
-      showToast('❌ Error subiendo foto: ' + res.status + ' — ' + errTxt.slice(0,80), 'err');
+    // Subir usando el SDK oficial (maneja autenticación correctamente)
+    const { error } = await sbClient.storage
+      .from('fotos')
+      .upload(filename, blob, { contentType: 'image/jpeg', upsert: true });
+    if (error) {
+      console.error('Storage error:', error);
+      showToast('❌ Error subiendo foto: ' + error.message, 'err');
       return null;
     }
-    return SB_URL + '/storage/v1/object/public/fotos/' + filename;
+    const { data } = sbClient.storage.from('fotos').getPublicUrl(filename);
+    return data.publicUrl;
   } catch(e) {
     console.error('Supabase storage error:', e);
     showToast('❌ Error de conexión al subir foto', 'err');
