@@ -2432,8 +2432,10 @@ async function subirFotoASupabase(dataUrl, nombre, id) {
     // Convertir base64 a blob
     const fetchRes = await fetch(dataUrl);
     const blob     = await fetchRes.blob();
-    // Nombre de archivo único por producto
-    const filename = (nombre||'foto').replace(/[^a-zA-Z0-9]/g,'_') + '_' + (id||Date.now()) + '.jpg';
+    // Nombre de archivo único por producto (sanitizar nombre e id)
+    const safeName = (nombre||'foto').replace(/[^a-zA-Z0-9]/g,'_').slice(0,40);
+    const safeId   = String(id||Date.now()).replace(/[^a-zA-Z0-9]/g,'_');
+    const filename = safeName + '_' + safeId + '.jpg';
     // Subir a Supabase Storage (upsert si ya existe)
     const res = await fetch(SB_URL + '/storage/v1/object/fotos/' + filename, {
       method: 'POST',
