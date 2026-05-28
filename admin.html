@@ -393,12 +393,18 @@ input[type=range]::-webkit-slider-thumb { appearance:none; width:20px; height:20
 .cat-avail.out { background:var(--red-light);    color:var(--red);    border:1px solid #E8BABA; }
 
 /* FILTROS */
-.filt-row { display:flex; gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; margin-bottom:10px; padding-bottom:2px; }
+.filt-row { display:flex; gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; margin-bottom:10px; padding-bottom:2px; scroll-behavior:smooth; }
 .filt-row::-webkit-scrollbar { display:none; }
 .filt-btn { flex-shrink:0; padding:7px 13px; border:1px solid var(--border); border-radius:99px; background:var(--surface); color:var(--text2); font-size:12px; font-weight:500; cursor:pointer; font-family:'Outfit',sans-serif; transition:all 0.15s; white-space:nowrap; }
 .filt-btn.on       { background:var(--accent-light); border-color:var(--accent-mid); color:var(--accent); }
 .filt-btn.on-amber { background:var(--amber-light); border-color:#DFC89A; color:var(--amber); }
 .filt-btn.on-blue  { background:var(--blue-light); border-color:#B0C8DC; color:var(--blue); }
+/* FLECHAS FILTRO CATÁLOGO */
+.cat-filt-wrap { position:relative; padding:0 32px; }
+.cat-filt-nav { position:absolute; top:50%; transform:translateY(-65%); z-index:10; background:white; border:1px solid var(--border); border-radius:50%; width:26px; height:26px; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.10); font-size:15px; line-height:1; padding:0; color:var(--text2); transition:background 0.15s; }
+.cat-filt-nav:hover { background:var(--surface2); }
+.cat-filt-nav.left  { left:0; }
+.cat-filt-nav.right { right:0; }
 
 /* MODO COMPARTIR */
 .cat-share-mode { position:fixed; inset:0; background:#FAF8F5; z-index:300; overflow-y:auto; display:none; }
@@ -799,7 +805,11 @@ input[type=range]::-webkit-slider-thumb { appearance:none; width:20px; height:20
     <button class="cat-edit-name-btn" onclick="editarNombreTienda()">✏️ Editar nombre</button>
   </div>
 
-  <div class="filt-row" id="cat-tipo-row"></div>
+  <div class="cat-filt-wrap">
+    <button class="cat-filt-nav left" onclick="scrollCatFilt(-1)">‹</button>
+    <div class="filt-row" id="cat-tipo-row"></div>
+    <button class="cat-filt-nav right" onclick="scrollCatFilt(1)">›</button>
+  </div>
   <div class="filt-row" style="margin-bottom:1rem;">
     <button class="filt-btn on" id="cd-disp"  onclick="setCatDisp('disponibles')">Solo disponibles</button>
     <button class="filt-btn"    id="cd-todos" onclick="setCatDisp('todos')">Ver todos</button>
@@ -2323,6 +2333,10 @@ function setVenCanal(f)   { venCanalFilter=f;   renderVentas(); }
 function setInvCat(f)     { invCatFilter=f;     renderInv(); }
 function setCatTipo(f)    { catTipoFilter=f;    renderCatalogo(); }
 function setCatDisp(f)    { catDispFilter=f;    renderCatalogo(); }
+function scrollCatFilt(dir) {
+  const el = document.getElementById('cat-tipo-row');
+  if (el) el.scrollBy({ left: dir * 200, behavior: 'smooth' });
+}
 
 // ═══════════════════════════════════════════
 //  CATÁLOGO
