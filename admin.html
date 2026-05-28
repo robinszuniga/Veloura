@@ -2441,9 +2441,18 @@ async function subirFotoASupabase(dataUrl, nombre, id) {
                  'Content-Type': 'image/jpeg', 'x-upsert': 'true' },
       body: blob
     });
-    if (!res.ok) { console.log('Storage error:', await res.text()); return null; }
+    if (!res.ok) {
+      const errTxt = await res.text();
+      console.error('Storage error:', errTxt);
+      showToast('❌ Error subiendo foto: ' + res.status + ' — ' + errTxt.slice(0,80), 'err');
+      return null;
+    }
     return SB_URL + '/storage/v1/object/public/fotos/' + filename;
-  } catch(e) { console.log('Supabase storage error:', e); return null; }
+  } catch(e) {
+    console.error('Supabase storage error:', e);
+    showToast('❌ Error de conexión al subir foto', 'err');
+    return null;
+  }
 }
 
 function resizeImage(file, maxSize, cb) {
