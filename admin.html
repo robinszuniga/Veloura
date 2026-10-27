@@ -11,7 +11,11 @@
 <meta name="apple-mobile-web-app-title" content="Veloura Admin" />
 <title>Veloura Essence · Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<!-- Versión exacta + huella de integridad (sha384): si el archivo del CDN cambia, el navegador lo rechaza.
+     Para actualizar: cambiar la versión y recalcular la huella del archivo dist/umd/supabase.js. -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"
+        integrity="sha384-BWcjm9OdFth9TbhCxZPdm+gAOUMAzQy9nmTs12ioXdCcbVnJaPMn+fMUoQCLt60R"
+        crossorigin="anonymous"></script>
 <style>
 /* LOGIN */
 .login-screen { position:fixed; inset:0; background:#1C1A17; z-index:9999; display:flex; align-items:center; justify-content:center; padding:2rem; }
