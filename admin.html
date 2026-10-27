@@ -846,6 +846,20 @@ input[type=range]::-webkit-slider-thumb { appearance:none; width:20px; height:20
     <input class="login-input" type="password" id="login-input" placeholder="Contraseña" autocomplete="current-password" onkeydown="if(event.key==='Enter')_loginCheck()"/>
     <button class="login-btn" id="login-btn" onclick="_loginCheck()">Entrar</button>
     <div class="login-err" id="login-err">Correo o contraseña incorrectos</div>
+    <button type="button" id="login-olvide" onclick="_olvideClave()" style="background:none;border:none;color:#A09890;font-family:'Outfit',sans-serif;font-size:12px;margin-top:14px;cursor:pointer;text-decoration:underline;">Olvidé mi contraseña</button>
+    <div id="login-msg" style="font-size:13px;color:#1A5C3A;margin-top:10px;display:none;"></div>
+  </div>
+</div>
+
+<!-- CONTRASEÑA NUEVA (se muestra al llegar desde el correo de recuperación) -->
+<div class="login-screen" id="recovery-screen" style="display:none;z-index:10000;">
+  <div class="login-box">
+    <div class="login-logo">Veloura <em>Essence</em></div>
+    <div class="login-sub">Crea tu contraseña nueva</div>
+    <input class="login-input" type="password" id="rec-pass1" placeholder="Contraseña nueva (mín. 8)" autocomplete="new-password" />
+    <input class="login-input" type="password" id="rec-pass2" placeholder="Repite la contraseña" autocomplete="new-password" onkeydown="if(event.key==='Enter')_guardarNuevaClave()"/>
+    <button class="login-btn" id="rec-btn" onclick="_guardarNuevaClave()">Guardar contraseña</button>
+    <div class="login-err" id="rec-err"></div>
   </div>
 </div>
 
@@ -1008,7 +1022,22 @@ input[type=range]::-webkit-slider-thumb { appearance:none; width:20px; height:20
 // La pantalla de login está visible por defecto y se oculta cuando hay sesión de administrador.
 const SB_URL = 'https://ewfcqqmrhidvuhprqqqe.supabase.co';
 const SB_KEY = 'sb_publishable_HqYnS4UUqrF8PCpcfM97qg_aUP-mKwn';
-const sbClient = supabase.createClient(SB_URL, SB_KEY);
+const URL_ADMIN = 'https://velouraessence.online/admin.html'; // debe estar en Redirect URLs de Supabase
+
+// El enlace del correo de recuperación trae los tokens en el #hash. Se leen una sola vez y la URL
+// se limpia de inmediato (no quedan en el historial). supabase-js no los procesa solo
+// (detectSessionInUrl:false): con ellos se abre una sesión SOLO en memoria, solo para cambiar la
+// contraseña, y no se guarda en el navegador, así que recargar no deja entrar al panel con ella.
+const _params       = new URLSearchParams((location.hash || '').replace(/^#/, ''));
+const _esRecup      = _params.get('type') === 'recovery';
+let   _accessRec    = _params.get('access_token');
+let   _refreshRec   = _params.get('refresh_token');
+const _enlaceMalo   = _params.has('error') || _params.has('error_code') || (_esRecup && !(_accessRec && _refreshRec));
+let   _recuperando  = _esRecup && !_enlaceMalo;
+let   _recClient    = null;
+if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+
+const sbClient = supabase.createClient(SB_URL, SB_KEY, { auth: { detectSessionInUrl: false } });
 let _iniciando    = false;  // ya se está cargando la nube (evita arrancar dos veces)
 let _nubeLista    = false;  // la nube se leyó bien: solo entonces se permite escribirla
 let _syncPendiente = false; // hubo un guardado mientras la nube aún no estaba lista: se reenvía al estarlo
@@ -1020,6 +1049,7 @@ function _esAdmin(session) {
 function _mostrarLogin(error) {
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('login-err').style.display = error ? 'block' : 'none';
+  document.getElementById('login-msg').style.display = 'none';
   const btn = document.getElementById('login-btn');
   btn.disabled = false; btn.textContent = 'Entrar';
 }
@@ -1049,6 +1079,94 @@ async function _loginCheck() {
     _mostrarLogin(true);
   }
 }
+function _loginMsg(texto) {
+  document.getElementById('login-err').style.display = 'none';
+  const m = document.getElementById('login-msg');
+  m.textContent = texto; m.style.display = 'block';
+}
+async function _olvideClave() {
+  const email = document.getElementById('login-email').value.trim();
+  if (!email) { _loginMsg('Escribe tu correo arriba y vuelve a pulsar "Olvidé mi contraseña".'); return; }
+  try {
+    const { error } = await sbClient.auth.resetPasswordForEmail(email, { redirectTo: URL_ADMIN });
+    if (error) throw error;
+    // Mismo mensaje exista o no el correo: no se revela quién tiene acceso
+    _loginMsg('Si ese correo tiene acceso, te enviamos un enlace para crear una contraseña nueva.');
+  } catch (e) {
+    // Mensajes propios: no se muestra el texto crudo del servidor
+    if (e && e.status === 429) _loginMsg('Pediste demasiados correos. Espera unos minutos e inténtalo de nuevo.');
+    else _loginMsg('No se pudo enviar el correo. Revisa tu conexión e inténtalo de nuevo.');
+  }
+}
+const MSG_ENLACE_MALO = 'El enlace venció o ya se usó. Pulsa "Olvidé mi contraseña" para pedir uno nuevo.';
+let _recGen = 0; // cambia al abandonar la recuperación: descarta un setSession que termina tarde
+function _abortarRecuperacion() {
+  // Enlace inservible (vencido, revocado): se cierra el formulario y se vuelve al login con aviso
+  _recGen++; _recuperando = false; _recClient = null;
+  document.getElementById('rec-pass1').value = '';
+  document.getElementById('rec-pass2').value = '';
+  document.getElementById('rec-err').style.display = 'none';
+  document.getElementById('recovery-screen').style.display = 'none';
+  _mostrarLogin(false);
+  _loginMsg(MSG_ENLACE_MALO);
+}
+async function _iniciarRecuperacion() {
+  const gen = _recGen;
+  const access = _accessRec, refresh = _refreshRec;
+  _accessRec = _refreshRec = null; // los tokens no se conservan más de lo necesario
+  try {
+    // Cliente aparte y sin persistencia: la sesión de recuperación vive solo en esta página
+    _recClient = supabase.createClient(SB_URL, SB_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false, storageKey: 'vl-recuperacion' }
+    });
+    const { data, error } = await _recClient.auth.setSession({ access_token: access, refresh_token: refresh });
+    if (error || !data || !data.session) throw error || new Error('sin sesión');
+    if (gen !== _recGen) return; // se abandonó la recuperación mientras validaba
+    document.getElementById('recovery-screen').style.display = 'flex';
+    document.getElementById('rec-pass1').focus();
+  } catch (e) {
+    // Token vencido, usado o inválido: nada de formulario inútil, se vuelve al login
+    if (gen === _recGen) { _recuperando = false; _recClient = null; _loginMsg(MSG_ENLACE_MALO); }
+  }
+}
+function _recError(texto) {
+  const e = document.getElementById('rec-err');
+  e.textContent = texto; e.style.display = 'block';
+}
+async function _guardarNuevaClave() {
+  const p1  = document.getElementById('rec-pass1').value;
+  const p2  = document.getElementById('rec-pass2').value;
+  const btn = document.getElementById('rec-btn');
+  if (!_recClient) { _recError('El enlace ya no es válido. Vuelve al inicio y pide uno nuevo.'); return; }
+  if (p1.length < 8) { _recError('La contraseña debe tener al menos 8 caracteres.'); return; }
+  if (p1 !== p2)     { _recError('Las contraseñas no coinciden.'); return; }
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  try {
+    const { error } = await _recClient.auth.updateUser({ password: p1 });
+    if (error) throw error;
+    // La sesión de recuperación se descarta: para entrar al panel hay que iniciar sesión con la clave nueva
+    try { await _recClient.auth.signOut({ scope: 'local' }); } catch (e) { /* ya está en memoria, se pierde al cerrar */ }
+    _recClient = null; _recuperando = false;
+    document.getElementById('rec-pass1').value = '';
+    document.getElementById('rec-pass2').value = '';
+    document.getElementById('rec-err').style.display = 'none';
+    document.getElementById('recovery-screen').style.display = 'none';
+    _mostrarLogin(false);
+    _loginMsg('Contraseña guardada. Entra con tu correo y la contraseña nueva.');
+  } catch (e) {
+    const codigo = e && e.code;
+    const sesionMuerta = e && (e.status === 401 || e.status === 403 || e.status === 404 ||
+      /AuthSessionMissing|AuthInvalidJwt/.test(e.name || '') ||
+      ['session_not_found', 'session_expired', 'bad_jwt', 'refresh_token_not_found', 'refresh_token_already_used'].indexOf(codigo) !== -1);
+    if (sesionMuerta) { _abortarRecuperacion(); return; }
+    // Errores que se pueden corregir: se queda el formulario con un mensaje propio
+    if (codigo === 'same_password')  _recError('La contraseña nueva debe ser distinta a la anterior.');
+    else if (codigo === 'weak_password') _recError('La contraseña es muy débil: usa más caracteres y mezcla letras y números.');
+    else _recError('No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Guardar contraseña';
+  }
+}
 async function cerrarSesion() {
   try {
     const { error } = await sbClient.auth.signOut();
@@ -1065,12 +1183,14 @@ sbClient.auth.onAuthStateChange(function(evento, session) {
     // Sesión abierta en otra pestaña (o en esta): fuera del callback, como pide supabase-js
     const gen = _gen;
     setTimeout(function() {
-      if (gen !== _gen) return; // se cerró sesión entre tanto
+      if (gen !== _gen || _recuperando) return; // se cerró sesión, o falta crear la contraseña
       _ocultarLogin(); iniciarSincronizacion();
     }, 0);
   }
 });
 (async function() {
+  if (_enlaceMalo) { _loginMsg(MSG_ENLACE_MALO); return; }
+  if (_recuperando) { await _iniciarRecuperacion(); return; }
   try {
     const { data } = await sbClient.auth.getSession();
     if (_esAdmin(data.session)) { _ocultarLogin(); iniciarSincronizacion(); }
