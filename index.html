@@ -366,12 +366,16 @@ let catActual = 'todos';
 // ── CARGAR DESDE SUPABASE ─────────────────────────────
 async function cargar() {
   try {
-    const res  = await fetch(SB_URL + '/rest/v1/mi_tienda_sync?id=eq.1', {
-      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+    // Solo los campos públicos del catálogo (función catalogo_publico en Supabase)
+    const res  = await fetch(SB_URL + '/rest/v1/rpc/catalogo_publico', {
+      method: 'POST',
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
+      body: '{}'
     });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     const rows = await res.json();
-    if (!rows || !rows.length || !rows[0].productos) { mostrarVacio(); return; }
-    productos = rows[0].productos.filter(p => p.stock > 0);
+    if (!Array.isArray(rows) || !rows.length) { mostrarVacio(); return; }
+    productos = rows.filter(p => p.stock > 0);
     productos.sort((a,b) => a.nombre.localeCompare(b.nombre));
     renderCats();
     renderDestacados();

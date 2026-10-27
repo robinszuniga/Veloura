@@ -9,15 +9,11 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="Veloura Admin" />
 <title>Veloura Essence · Admin</title>
-<script>
-/* Auth gate — oculta el documento hasta validar contraseña */
-(function(){if(sessionStorage.getItem('vl_auth')!=='1')document.documentElement.style.display='none';}());
-</script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 /* LOGIN */
-.login-screen { position:fixed; inset:0; background:#1C1A17; z-index:9999; display:none; align-items:center; justify-content:center; padding:2rem; }
+.login-screen { position:fixed; inset:0; background:#1C1A17; z-index:9999; display:flex; align-items:center; justify-content:center; padding:2rem; }
 .login-box { background:#FAF8F5; border-radius:20px; padding:2.5rem 2rem; width:100%; max-width:360px; text-align:center; }
 .login-logo { font-family:'DM Serif Display',serif; font-size:2rem; color:#1C1A17; margin-bottom:4px; }
 .login-logo em { font-style:italic; color:#2E8A57; }
@@ -445,6 +441,7 @@ input[type=range]::-webkit-slider-thumb { appearance:none; width:20px; height:20
 
 <!-- HEADER -->
 <div class="header">
+  <button onclick="cerrarSesion()" style="position:absolute;top:12px;right:14px;z-index:2;background:transparent;border:1px solid rgba(250,248,245,0.35);color:rgba(250,248,245,0.8);border-radius:8px;padding:5px 10px;font-family:'Outfit',sans-serif;font-size:12px;cursor:pointer;">Salir</button>
   <div class="header-inner">
     <h1>Mi tienda<br><em>importados</em></h1>
     <p>Importación EE.UU → Colombia · TRM en tiempo real</p>
@@ -843,11 +840,12 @@ input[type=range]::-webkit-slider-thumb { appearance:none; width:20px; height:20
 <!-- LOGIN SCREEN -->
 <div class="login-screen" id="login-screen">
   <div class="login-box">
-    <div class="login-logo">Veloura <em>Ensecce</em></div>
+    <div class="login-logo">Veloura <em>Essence</em></div>
     <div class="login-sub">Panel de administración</div>
-    <input class="login-input" type="password" id="login-input" placeholder="Contraseña" onkeydown="if(event.key==='Enter')_loginCheck()"/>
-    <button class="login-btn" onclick="_loginCheck()">Entrar</button>
-    <div class="login-err" id="login-err">Contraseña incorrecta</div>
+    <input class="login-input" type="email" id="login-email" placeholder="Correo" autocomplete="username" style="letter-spacing:0;" onkeydown="if(event.key==='Enter')document.getElementById('login-input').focus()"/>
+    <input class="login-input" type="password" id="login-input" placeholder="Contraseña" autocomplete="current-password" onkeydown="if(event.key==='Enter')_loginCheck()"/>
+    <button class="login-btn" id="login-btn" onclick="_loginCheck()">Entrar</button>
+    <div class="login-err" id="login-err">Correo o contraseña incorrectos</div>
   </div>
 </div>
 
@@ -1006,28 +1004,78 @@ input[type=range]::-webkit-slider-thumb { appearance:none; width:20px; height:20
 // ═══════════════════════════════════════════
 //  LOGIN
 // ═══════════════════════════════════════════
-(function() {
-  const ok = sessionStorage.getItem('vl_auth') === '1';
-  if (ok) {
-    // Ya autenticado: mostrar app, login oculto
-    document.documentElement.style.display = '';
-  } else {
-    // No autenticado: mostrar pantalla de login
-    document.documentElement.style.display = '';
-    document.getElementById('login-screen').style.display = 'flex';
-  }
-})();
-function _loginCheck() {
-  const val = document.getElementById('login-input').value;
-  if (val === 'Veloura2026!') {
-    sessionStorage.setItem('vl_auth', '1');
-    document.getElementById('login-screen').style.display = 'none';
-  } else {
-    document.getElementById('login-err').style.display = 'block';
-    document.getElementById('login-input').value = '';
-    document.getElementById('login-input').focus();
+// El acceso real lo decide Supabase (RLS): aquí solo se decide qué pantalla mostrar.
+// La pantalla de login está visible por defecto y se oculta cuando hay sesión de administrador.
+const SB_URL = 'https://ewfcqqmrhidvuhprqqqe.supabase.co';
+const SB_KEY = 'sb_publishable_HqYnS4UUqrF8PCpcfM97qg_aUP-mKwn';
+const sbClient = supabase.createClient(SB_URL, SB_KEY);
+let _iniciando    = false;  // ya se está cargando la nube (evita arrancar dos veces)
+let _nubeLista    = false;  // la nube se leyó bien: solo entonces se permite escribirla
+let _syncPendiente = false; // hubo un guardado mientras la nube aún no estaba lista: se reenvía al estarlo
+let _gen          = 0;      // cambia al cerrar sesión: descarta lecturas que terminan después
+
+function _esAdmin(session) {
+  return !!(session && session.user && session.user.app_metadata && session.user.app_metadata.role === 'admin');
+}
+function _mostrarLogin(error) {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-err').style.display = error ? 'block' : 'none';
+  const btn = document.getElementById('login-btn');
+  btn.disabled = false; btn.textContent = 'Entrar';
+}
+function _ocultarLogin() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('login-input').value = '';
+}
+async function _loginCheck() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-input').value;
+  const btn   = document.getElementById('login-btn');
+  if (!email || !pass) { _mostrarLogin(true); return; }
+  btn.disabled = true; btn.textContent = 'Entrando…';
+  try {
+    const { data, error } = await sbClient.auth.signInWithPassword({ email: email, password: pass });
+    if (error || !_esAdmin(data.session)) {
+      // Una cuenta que existe pero no es de administrador no entra
+      if (!error) await sbClient.auth.signOut();
+      document.getElementById('login-input').value = '';
+      _mostrarLogin(true);
+      document.getElementById('login-input').focus();
+      return;
+    }
+    _ocultarLogin();
+    iniciarSincronizacion();
+  } catch (e) {
+    _mostrarLogin(true);
   }
 }
+async function cerrarSesion() {
+  try {
+    const { error } = await sbClient.auth.signOut();
+    if (error) throw error;
+  } catch (e) {
+    showToast('No se pudo cerrar la sesión: ' + (e.message || e), 'err');
+  }
+}
+sbClient.auth.onAuthStateChange(function(evento, session) {
+  if (evento === 'SIGNED_OUT') {
+    // Sesión vencida o cerrada desde otra pestaña: volver al login
+    _gen++; _iniciando = false; _nubeLista = false; _mostrarLogin(false);
+  } else if (evento === 'SIGNED_IN' && _esAdmin(session)) {
+    // Sesión abierta en otra pestaña (o en esta): fuera del callback, como pide supabase-js
+    const gen = _gen;
+    setTimeout(function() {
+      if (gen !== _gen) return; // se cerró sesión entre tanto
+      _ocultarLogin(); iniciarSincronizacion();
+    }, 0);
+  }
+});
+(async function() {
+  try {
+    const { data } = await sbClient.auth.getSession();
+    if (_esAdmin(data.session)) { _ocultarLogin(); iniciarSincronizacion(); }
+  } catch (e) { /* sin sesión: se queda el login */ }
+})();
 // ═══════════════════════════════════════════
 //  TOAST (reemplaza alert/confirm/prompt bloqueados en iOS PWA)
 // ═══════════════════════════════════════════
@@ -2120,30 +2168,37 @@ function importar(event) {
 // ═══════════════════════════════════════════
 //  SUPABASE
 // ═══════════════════════════════════════════
-const SB_URL = 'https://ewfcqqmrhidvuhprqqqe.supabase.co';
-const SB_KEY = 'sb_publishable_HqYnS4UUqrF8PCpcfM97qg_aUP-mKwn';
-const SB_HDR = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' };
-const sbClient = supabase.createClient(SB_URL, SB_KEY);
+// (SB_URL, SB_KEY y sbClient están definidos arriba, en la sección LOGIN)
 
 async function syncASupabase() {
+  // Sin sesión de administrador las reglas de la base rechazan la escritura: no se intenta
+  if (!_nubeLista) { _syncPendiente = true; return; }
   try {
     const productos = getInv().map(function(p){ const c=Object.assign({},p); delete c.foto; return c; });
     const ventas    = safeGet('skincare_ventas', []).slice(0, 1000);
     const hist      = safeGet('skincare_hist',   []).slice(0, 500);
-    await fetch(SB_URL + '/rest/v1/mi_tienda_sync?id=eq.1', {
-      method: 'PATCH', headers: SB_HDR,
-      body: JSON.stringify({ productos, ventas, hist, actualizado: new Date().toISOString() })
-    });
-  } catch(e) { console.log('Supabase sync error:', e); }
+    const { data, error } = await sbClient.from('mi_tienda_sync')
+      .update({ productos, ventas, hist, actualizado: new Date().toISOString() })
+      .eq('id', 1)
+      .select('id');
+    if (error) throw error;
+    // Una escritura bloqueada por RLS no da error: devuelve cero filas
+    if (!data || !data.length) throw new Error('la base no aceptó el guardado, vuelve a iniciar sesión');
+  } catch(e) {
+    console.log('Supabase sync error:', e);
+    showToast('⚠️ No se guardó en la nube: ' + (e.message || e), 'warn');
+  }
 }
 
-async function cargarDesdeSupabase() {
+async function cargarDesdeSupabase(gen) {
   // Guardar marca de tiempo ANTES del fetch para detectar cambios locales durante la carga
   const tsAntes = parseInt(localStorage.getItem('skincare_inv_ts') || '0');
   try {
-    const res  = await fetch(SB_URL + '/rest/v1/mi_tienda_sync?id=eq.1', { headers: SB_HDR });
-    const rows = await res.json();
-    if (!rows || !rows.length) return;
+    const { data: rows, error } = await sbClient.from('mi_tienda_sync').select('*').eq('id', 1);
+    if (error) throw error;
+    // Se cerró sesión mientras se leía: no se toca nada local (el .then de abajo descarta el resultado)
+    if (gen !== undefined && gen !== _gen) return false;
+    if (!rows || !rows.length) throw new Error('no hay fila id=1 en mi_tienda_sync');
     const data = rows[0];
 
     // ── Inventario — REEMPLAZAR completo, conservar fotos locales ──
@@ -2184,7 +2239,11 @@ async function cargarDesdeSupabase() {
 
     renderHist(); renderInv(); renderVentas(); updateBadge();
     console.log('✅ Supabase cargado:', (data.productos||[]).length, 'productos,', (data.ventas||[]).length, 'ventas');
-  } catch(e) { console.log('Supabase load error:', e); }
+    return true;
+  } catch(e) {
+    console.log('Supabase load error:', e);
+    return false;
+  }
 }
 
 // ═══════════════════════════════════════════
@@ -2505,7 +2564,7 @@ async function subirFotoASupabase(dataUrl, nombre, id) {
     const safeId   = String(id   || Date.now()).replace(/[^a-zA-Z0-9]/g, '_').slice(0, 40);
     const safeName = String(nombre || 'foto').replace(/[^a-zA-Z0-9]/g, '_').slice(0, 40);
     const fileName = `${safeId}_${safeName}_${Date.now()}.jpg`;
-    // Subir al bucket 'fotos' (política FOR ALL → cualquiera puede subir)
+    // Subir al bucket 'fotos' (solo el administrador autenticado puede escribir)
     const { data, error } = await sbClient.storage
       .from('fotos')
       .upload(fileName, blob, { contentType: 'image/jpeg', upsert: true });
@@ -2637,20 +2696,36 @@ function cerrarModoCompartir() {
 fetchTRM();
 renderHist();
 updateBadge();
-cargarDesdeSupabase().then(() => {
-  // Aviso de stock bajo al abrir la app
-  setTimeout(() => {
-    const inv = getInv();
-    const agotados = inv.filter(p => p.stock === 0);
-    const bajos    = inv.filter(p => p.stock > 0 && p.stock <= 3);
-    if (agotados.length && bajos.length)
-      showToast('⚠️ ' + agotados.length + ' agotado' + (agotados.length>1?'s':'') + ' · ' + bajos.length + ' con stock bajo', 'warn');
-    else if (agotados.length)
-      showToast('❌ ' + agotados.length + ' producto' + (agotados.length>1?'s':'') + ' agotado' + (agotados.length>1?'s':''), 'err');
-    else if (bajos.length)
-      showToast('⚠️ ' + bajos.length + ' producto' + (bajos.length>1?'s':'') + ' con stock bajo', 'warn');
-  }, 1500);
-});
+// Se llama solo cuando ya hay sesión de administrador (ver sección LOGIN)
+function iniciarSincronizacion() {
+  if (_iniciando || _nubeLista) return;
+  _iniciando = true;
+  const gen = _gen;
+  cargarDesdeSupabase(gen).then((ok) => {
+    if (gen !== _gen) return; // se cerró sesión mientras cargaba: este resultado ya no vale
+    _iniciando = false;
+    if (!ok) {
+      // No se escribe en la nube con datos locales viejos: se reintenta al recargar o al volver a entrar
+      showToast('❌ No se pudo leer la nube. Los cambios no se guardarán en línea hasta recargar la página.', 'err');
+      return;
+    }
+    _nubeLista = true;
+    // Lo que se editó mientras cargaba la nube se envía ahora, ya reconciliado con ella
+    if (_syncPendiente) { _syncPendiente = false; syncASupabase(); }
+    // Aviso de stock bajo al abrir la app
+    setTimeout(() => {
+      const inv = getInv();
+      const agotados = inv.filter(p => p.stock === 0);
+      const bajos    = inv.filter(p => p.stock > 0 && p.stock <= 3);
+      if (agotados.length && bajos.length)
+        showToast('⚠️ ' + agotados.length + ' agotado' + (agotados.length>1?'s':'') + ' · ' + bajos.length + ' con stock bajo', 'warn');
+      else if (agotados.length)
+        showToast('❌ ' + agotados.length + ' producto' + (agotados.length>1?'s':'') + ' agotado' + (agotados.length>1?'s':''), 'err');
+      else if (bajos.length)
+        showToast('⚠️ ' + bajos.length + ' producto' + (bajos.length>1?'s':'') + ' con stock bajo', 'warn');
+    }, 1500);
+  });
+}
 </script>
 </body>
 </html>
